@@ -1,0 +1,17 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "A scalable, microservices-based backend for a digital banking application built with Node.js, Express, PostgreSQL, and Redis.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install:services": "node ./scripts/install-services.js",
+    "docker:up": "docker-compose up -d --build",
+    "docker:down": "docker-compose down",
+    "services:dev": "echo 'Start services individually: cd apps/<service> && npm run dev'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

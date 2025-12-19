@@ -1,0 +1,366 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fintech-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fintech_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - fintech-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-fintech_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: fintech-redis
+    # Start redis with or without password depending on REDIS_PASSWORD
+    command: ["sh", "-c", "if [ -z \"$REDIS_PASSWORD\" ]; then redis-server --appendonly yes; else redis-server --appendonly yes --requirepass \"$REDIS_PASSWORD\"; fi"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - fintech-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: fintech-api-gateway
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      NODE_PATH: /app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      AUTH_SERVICE_HOST: auth-service
+      AUTH_SERVICE_PORT: 3001
+      ACCOUNT_SERVICE_HOST: account-service
+      ACCOUNT_SERVICE_PORT: 3002
+      TRANSACTION_SERVICE_HOST: transaction-service
+      TRANSACTION_SERVICE_PORT: 3003
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    volumes:
+      - ./shared:/shared:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./apps/auth-service
+      dockerfile: Dockerfile
+    container_name: fintech-auth-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3001
+      NODE_PATH: /app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24h}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+    volumes:
+      - ./shared:/shared:ro
+    expose:
+      - "3001"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Account Service
+  account-service:
+    build:
+      context: ./apps/account-service
+      dockerfile: Dockerfile
+    container_name: fintech-account-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3002
+      NODE_PATH: /app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    volumes:
+      - ./shared:/shared:ro
+    expose:
+      - "3002"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Transaction Service
+  transaction-service:
+    build:
+      context: ./apps/transaction-service
+      dockerfile: Dockerfile
+    container_name: fintech-transaction-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3003
+      NODE_PATH: /app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    volumes:
+      - ./shared:/shared:ro
+    expose:
+      - "3003"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Ledger Service (CRITICAL)
+  ledger-service:
+    build:
+      context: .
+      dockerfile: ./apps/ledger-service/Dockerfile
+    container_name: fintech-ledger-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8005
+      NODE_PATH: /app/apps/ledger-service/node_modules:/app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    expose:
+      - "8005"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8005/health"]
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Settlement Service (IMPORTANT)
+  settlement-service:
+    build:
+      context: .
+      dockerfile: ./apps/settlement-service/Dockerfile
+    container_name: fintech-settlement-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8006
+      NODE_PATH: /app/apps/settlement-service/node_modules:/app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    expose:
+      - "8006"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8006/health"]
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Dispute Service (IMPORTANT)
+  dispute-service:
+    build:
+      context: .
+      dockerfile: ./apps/dispute-service/Dockerfile
+    container_name: fintech-dispute-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8007
+      NODE_PATH: /app/apps/dispute-service/node_modules:/app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    expose:
+      - "8007"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8007/health"]
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Audit Service (IMPORTANT)
+  audit-service:
+    build:
+      context: .
+      dockerfile: ./apps/audit-service/Dockerfile
+    container_name: fintech-audit-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8008
+      NODE_PATH: /app/apps/audit-service/node_modules:/app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    expose:
+      - "8008"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8008/health"]
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Notification Service (USEFUL)
+  notification-service:
+    build:
+      context: .
+      dockerfile: ./apps/notification-service/Dockerfile
+    container_name: fintech-notification-service
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 8009
+      NODE_PATH: /app/apps/notification-service/node_modules:/app/node_modules
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fintech_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+    expose:
+      - "8009"
+    networks:
+      - fintech-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8009/health"]
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  fintech-network:
+    driver: bridge
+    name: fintech-network
+
+volumes:
+  postgres_data:
+    name: fintech-postgres-data
+  redis_data:
+    name: fintech-redis-data
