@@ -71,31 +71,13 @@ app.get('/', (req, res) => {
   }, 'Authentication Service Information'));
 });
 
-// Auth routes placeholder (business logic will be added later)
-app.post('/login', (req, res) => {
-  // TODO: Implement login logic
-  res.json(createResponse(null, 'Login endpoint - implementation pending'));
-});
-
-app.post('/register', (req, res) => {
-  // TODO: Implement registration logic
-  res.json(createResponse(null, 'Register endpoint - implementation pending'));
-});
-
-app.post('/logout', (req, res) => {
-  // TODO: Implement logout logic
-  res.json(createResponse(null, 'Logout endpoint - implementation pending'));
-});
-
-app.post('/refresh', (req, res) => {
-  // TODO: Implement token refresh logic
-  res.json(createResponse(null, 'Token refresh endpoint - implementation pending'));
-});
-
-app.post('/verify', (req, res) => {
-  // TODO: Implement token verification logic
-  res.json(createResponse(null, 'Token verification endpoint - implementation pending'));
-});
+// Mount auth routes from src
+try {
+  const authRoutes = require('./src/routes/authRoutes');
+  app.use('/', authRoutes);
+} catch (e) {
+  console.warn('⚠️  Could not mount auth routes:', e.message);
+}
 
 // Catch-all for unknown routes
 app.use('*', (req, res) => {

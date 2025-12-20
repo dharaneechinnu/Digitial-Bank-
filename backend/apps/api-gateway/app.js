@@ -8,7 +8,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // Import shared modules
 const config = require('../../shared/config');
@@ -71,71 +70,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// API Gateway routes - Proxy to microservices
-app.use('/api/auth', createProxyMiddleware({
-  target: `http://${config.services.authService.host}:${config.services.authService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/auth': '', // Remove /api/auth prefix when forwarding
-  },
-}));
-
-app.use('/api/accounts', createProxyMiddleware({
-  target: `http://${config.services.accountService.host}:${config.services.accountService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/accounts': '',
-  },
-}));
-
-app.use('/api/transactions', createProxyMiddleware({
-  target: `http://${config.services.transactionService.host}:${config.services.transactionService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/transactions': '',
-  },
-}));
-
-// New microservice proxy routes
-app.use('/api/ledger', createProxyMiddleware({
-  target: `http://${config.services.ledgerService.host}:${config.services.ledgerService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/ledger': '',
-  },
-}));
-
-app.use('/api/settlements', createProxyMiddleware({
-  target: `http://${config.services.settlementService.host}:${config.services.settlementService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/settlements': '',
-  },
-}));
-
-app.use('/api/disputes', createProxyMiddleware({
-  target: `http://${config.services.disputeService.host}:${config.services.disputeService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/disputes': '',
-  },
-}));
-
-app.use('/api/audit', createProxyMiddleware({
-  target: `http://${config.services.auditService.host}:${config.services.auditService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/audit': '',
-  },
-}));
-
-app.use('/api/notifications', createProxyMiddleware({
-  target: `http://${config.services.notificationService.host}:${config.services.notificationService.port}`,
-  changeOrigin: true,
-  pathRewrite: {
-    '^/api/notifications': '',
-  },
-}));
+// Proxy routes are now mounted from ./src/routes/proxyRoutes.js
 
 // API documentation endpoint
 app.get('/api', (req, res) => {
@@ -156,6 +91,14 @@ app.get('/api', (req, res) => {
     documentation: 'https://docs.your-company.com/api',
   }, 'API Gateway Information'));
 });
+
+// Register local src routes
+try {
+  require('./src')(app);
+} catch (e) {
+  // If src isn't present or errors during load, log but don't crash here.
+  console.warn('⚠️  Could not register local src routes:', e.message);
+}
 
 // Catch-all for unknown routes
 app.use('*', (req, res) => {
