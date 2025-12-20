@@ -24,15 +24,9 @@ const config = {
 
   // Database configuration
   database: {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
+    mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017',
     name: process.env.DB_NAME || 'fintech_db',
-    username: process.env.DB_USERNAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'password',
-    pool: {
-      min: parseInt(process.env.DB_POOL_MIN) || 2,
-      max: parseInt(process.env.DB_POOL_MAX) || 10,
-    },
+    password: process.env.DB_PASSWORD || '',
   },
 
   // Redis configuration

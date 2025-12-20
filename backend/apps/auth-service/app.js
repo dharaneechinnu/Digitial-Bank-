@@ -7,12 +7,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-// Import shared modules
-const config = require('../../shared/config');
 const { errorHandler, requestLogger } = require('../../shared/middlewares');
-const { createResponse } = require('../../shared/utils');
-const db = require('../../shared/db');
 
+
+  const authRoutes = require('./src/routes/authRoutes');
 const app = express();
 
 // Security middleware
@@ -30,54 +28,11 @@ app.use(requestLogger);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    const dbHealth = await db.healthCheckAll();
-    
-    const health = {
-      service: 'auth-service',
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      environment: config.app.nodeEnv,
-      databases: dbHealth,
-    };
 
-    res.json(createResponse(health, 'Auth Service is healthy'));
-  } catch (error) {
-    res.status(503).json({
-      service: 'auth-service',
-      status: 'unhealthy',
-      error: error.message,
-      timestamp: new Date().toISOString(),
-    });
-  }
-});
 
-// Service info endpoint
-app.get('/', (req, res) => {
-  res.json(createResponse({
-    service: 'Authentication Service',
-    version: '1.0.0',
-    endpoints: {
-      '/health': 'Health check endpoint',
-      '/login': 'User login (POST)',
-      '/register': 'User registration (POST)',
-      '/logout': 'User logout (POST)',
-      '/refresh': 'Refresh access token (POST)',
-      '/verify': 'Verify token (POST)',
-    },
-  }, 'Authentication Service Information'));
-});
 
-// Mount auth routes from src
-try {
-  const authRoutes = require('./src/routes/authRoutes');
+
   app.use('/', authRoutes);
-} catch (e) {
-  console.warn('⚠️  Could not mount auth routes:', e.message);
-}
 
 // Catch-all for unknown routes
 app.use('*', (req, res) => {

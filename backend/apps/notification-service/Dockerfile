@@ -3,31 +3,35 @@ FROM node:18-alpine
 # Create app directory
 WORKDIR /app
 
-# Copy shared dependencies first for better caching
-COPY shared/ ./shared/
+# Copy package files
 COPY package*.json ./
-RUN npm install --production
 
-# Copy service-specific files
-COPY apps/notification-service/package*.json ./apps/notification-service/
-WORKDIR /app/apps/notification-service
-RUN npm install --production
+# Install dependencies
+RUN npm install --production --no-audit --no-fund && npm cache clean --force
 
 # Copy application code
-COPY apps/notification-service/ ./
+COPY . .
+
+# Ensure shared code is available at /shared and node can resolve modules
+ENV NODE_PATH=/app/node_modules
+RUN ln -s /shared /app/shared || true
 
 # Create non-root user
-USER node
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S fintech -u 1001
 
-# Set working directory back to app root for shared modules
-WORKDIR /app
+# Change ownership of the app directory
+RUN chown -R fintech:nodejs /app
+
+# Switch to non-root user
+USER fintech
+
+# Expose port
+EXPOSE 8009
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8009/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Expose port
-EXPOSE 8009
-
 # Start the application
-CMD ["node", "apps/notification-service/server.js"]
+CMD ["node", "server.js"]

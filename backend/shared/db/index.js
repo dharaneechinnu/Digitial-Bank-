@@ -3,11 +3,11 @@
  * Centralizes all database connections
  */
 
-const postgres = require('./postgres');
+const mongodb = require('./mongodb');
 const redis = require('./redis');
 
 module.exports = {
-  postgres,
+  mongodb,
   redis,
   
   /**
@@ -15,7 +15,7 @@ module.exports = {
    */
   async connectAll() {
     try {
-      await postgres.connect();
+      await mongodb.connect();
       await redis.connect();
       console.log('✅ All databases connected successfully');
     } catch (error) {
@@ -29,7 +29,7 @@ module.exports = {
    */
   async disconnectAll() {
     try {
-      await postgres.disconnect();
+      await mongodb.disconnect();
       await redis.disconnect();
       console.log('📴 All databases disconnected');
     } catch (error) {
@@ -43,19 +43,19 @@ module.exports = {
    */
   async healthCheckAll() {
     try {
-      const [pgHealth, redisHealth] = await Promise.all([
-        postgres.healthCheck(),
+      const [mongoHealth, redisHealth] = await Promise.all([
+        mongodb.healthCheck(),
         redis.healthCheck(),
       ]);
       
       return {
-        postgres: pgHealth,
+        mongodb: mongoHealth,
         redis: redisHealth,
-        overall: pgHealth.status === 'healthy' && redisHealth.status === 'healthy' ? 'healthy' : 'unhealthy',
+        overall: mongoHealth.status === 'healthy' && redisHealth.status === 'healthy' ? 'healthy' : 'unhealthy',
       };
     } catch (error) {
       return {
-        postgres: { status: 'unhealthy', error: error.message },
+        mongodb: { status: 'unhealthy', error: error.message },
         redis: { status: 'unhealthy', error: error.message },
         overall: 'unhealthy',
       };

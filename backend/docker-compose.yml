@@ -1,29 +1,4 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: fintech-postgres
-    environment:
-      POSTGRES_DB: ${DB_NAME:-fintech_db}
-      POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
-    networks:
-      - fintech-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-fintech_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Redis Cache
   redis:
     image: redis:7-alpine
@@ -53,11 +28,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
       NODE_PATH: /app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -75,8 +48,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -91,11 +62,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3001
       NODE_PATH: /app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -109,8 +78,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -125,11 +92,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3002
       NODE_PATH: /app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -141,8 +106,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -157,11 +120,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 3003
       NODE_PATH: /app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -173,8 +134,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -189,11 +148,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 8005
       NODE_PATH: /app/apps/ledger-service/node_modules:/app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -203,8 +160,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -224,11 +179,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 8006
       NODE_PATH: /app/apps/settlement-service/node_modules:/app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -238,8 +191,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -259,11 +210,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 8007
       NODE_PATH: /app/apps/dispute-service/node_modules:/app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -273,8 +222,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -294,11 +241,9 @@ services:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 8008
       NODE_PATH: /app/apps/audit-service/node_modules:/app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -308,8 +253,6 @@ services:
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -322,29 +265,35 @@ services:
   # Notification Service (USEFUL)
   notification-service:
     build:
-      context: .
-      dockerfile: ./apps/notification-service/Dockerfile
+      context: ./apps/notification-service
+      dockerfile: Dockerfile
     container_name: fintech-notification-service
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 8009
       NODE_PATH: /app/apps/notification-service/node_modules:/app/node_modules
-      DB_HOST: postgres
-      DB_PORT: 5432
+      MONGO_URI: ${MONGO_URI}
       DB_NAME: ${DB_NAME:-fintech_db}
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password}
+      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-FinTech Bank}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+    volumes:
+      - ./apps/notification-service:/app:ro
+      - ./shared:/shared:ro
     expose:
       - "8009"
     networks:
       - fintech-network
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
@@ -360,7 +309,5 @@ networks:
     name: fintech-network
 
 volumes:
-  postgres_data:
-    name: fintech-postgres-data
   redis_data:
     name: fintech-redis-data

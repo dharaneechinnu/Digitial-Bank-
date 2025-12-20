@@ -2,19 +2,13 @@
  * Account Service Server
  */
 
-// Ensure modules installed in /app/node_modules are resolvable
-const Module = require('module');
-if (!Module.globalPaths.includes('/app/node_modules')) {
-  Module.globalPaths.push('/app/node_modules');
-}
-
 require('dotenv').config();
 
 const app = require('./app');
 const config = require('../../shared/config');
 const db = require('../../shared/db');
 
-const PORT = process.env.PORT || config.services.accountService.port;
+const PORT = process.env.PORT || config.app.ports.accountService;
 
 // Graceful shutdown handler
 const gracefulShutdown = async (signal) => {

@@ -25,13 +25,18 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Database errors
-  if (err.code === '23505') { // PostgreSQL unique violation
+  if (err.code === 11000) { // MongoDB duplicate key error
     error.message = 'Resource already exists';
     error.status = 409;
   }
 
-  if (err.code === '23503') { // PostgreSQL foreign key violation
-    error.message = 'Referenced resource not found';
+  if (err.name === 'ValidationError') { // MongoDB validation error
+    error.message = 'Validation failed';
+    error.status = 400;
+  }
+
+  if (err.name === 'CastError') { // MongoDB cast error (invalid ObjectId, etc.)
+    error.message = 'Invalid resource ID';
     error.status = 400;
   }
 

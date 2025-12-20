@@ -1,0 +1,61 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+.pnpm-store/
+.pnp.cjs
+.pnp.js
+
+# Build
+dist/
+build/
+coverage/
+.next/
+.out/
+.cache/
+.parcel-cache/
+
+# Environment
+.env
+.env.*.local
+.env.local
+
+# Docker
+docker-compose.override.yml
+.docker/
+
+# Database
+*.sqlite
+*.db
+
+# Logs
+logs/
+*.log
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Misc
+*.tgz
+*.gz
+coverage/
+.reportpreview
+
+# Ignore local service node_modules and logs
+backend/**/node_modules/
+backend/**/npm-debug.log*
+backend/**/yarn-debug.log*
+backend/**/yarn-error.log*
+
+# Ignore init SQL backups
+init-db/*.sql.bak

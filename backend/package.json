@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "A scalable, microservices-based backend for a digital banking application built with Node.js, Express, PostgreSQL, and Redis.",
+  "description": "A scalable, microservices-based backend for a digital banking application built with Node.js, Express, MongoDB, and Redis.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -13,5 +13,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "mongoose": "^9.0.2"
+  }
 }
